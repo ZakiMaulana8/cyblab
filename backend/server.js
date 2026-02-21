@@ -35,14 +35,74 @@ function calculateRisk(target) {
 }
 
 app.get("/scan", async (req, res) => {
-  const target = req.query.url
+  const url = req.query.url;
 
-  if (!target) return res.status(400).json({ error: "no url" })
+  if (!url) return res.status(400).json({ error: "no url" });
 
-  const result = calculateRisk(target)
+  let risk = 0;
+  const explanations = [];
 
-  res.json(result)
-})
+  try {
+    const parsed = new URL(url);
+    const domain = parsed.hostname;
+
+    // 🔎 keyword phishing
+    const keywords = ["login", "secure", "verify", "account", "update"];
+    keywords.forEach(k => {
+      if (domain.includes(k)) {
+        risk += 15;
+        explanations.push(`Contains phishing keyword: ${k}`);
+      }
+    });
+
+    // 🔎 panjang domain
+    if (domain.length > 25) {
+      risk += 10;
+      explanations.push("Domain is unusually long");
+    }
+
+    // 🔎 banyak dash
+    if ((domain.match(/-/g) || []).length > 2) {
+      risk += 10;
+      explanations.push("Too many dashes in domain");
+    }
+
+    // 🔎 http tanpa ssl
+    if (!url.startsWith("https")) {
+      risk += 20;
+      explanations.push("Not using HTTPS");
+    }
+
+    // 🔎 TLD aneh
+    const suspiciousTLD = ["xyz", "top", "click", "gq"];
+    const tld = domain.split(".").pop();
+
+    if (suspiciousTLD.includes(tld)) {
+      risk += 15;
+      explanations.push(`Suspicious TLD: .${tld}`);
+    }
+
+    const status =
+      risk < 30 ? "Low risk" :
+      risk < 60 ? "Medium risk" :
+      "High risk";
+
+    res.json({
+      risk,
+      status,
+      explanations,
+      details: {
+        domain,
+        tld,
+        https: url.startsWith("https") ? "yes" : "no"
+      }
+    });
+
+  } catch {
+    res.status(400).json({ error: "invalid url" });
+  }
+});
+
 
 app.get("/", (req,res)=>{
   res.send("CyberLab backend running")

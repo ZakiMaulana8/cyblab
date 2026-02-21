@@ -125,6 +125,17 @@ export default function App() {
                   ))}
                 </div>
               )}
+              {result.explanations && (
+                <div className="p-4 bg-slate-800 rounded-lg">
+                  <p className="font-semibold mb-2">Why this link is risky</p>
+
+                  {result.explanations.map((e, i) => (
+                    <p key={i} className="text-sm text-slate-300">
+                      • {e}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </Card>
