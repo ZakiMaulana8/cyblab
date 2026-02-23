@@ -136,6 +136,10 @@ export default function App() {
                   ))}
                 </div>
               )}
+              {result.explanations?.map((e,i)=>(
+                <Stat key={i} label="Reason" value={e}/>
+              ))}
+
             </div>
           )}
         </Card>
