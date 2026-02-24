@@ -139,6 +139,12 @@ export default function App() {
               {result.explanations?.map((e,i)=>(
                 <Stat key={i} label="Reason" value={e}/>
               ))}
+              {result.screenshot && (
+                <img
+                  src={`http://localhost:5000/shots/${result.screenshot}`}
+                  className="rounded-xl border mt-4"
+                />
+              )}
 
             </div>
           )}

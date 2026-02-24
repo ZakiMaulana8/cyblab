@@ -10,6 +10,52 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+async function analyzePage(targetUrl, domain, explanations){
+  let risk = 0
+
+  try{
+    const {data} = await axios.get(targetUrl,{timeout:5000})
+    const $ = cheerio.load(data)
+
+    // 🔎 login form detection
+    const hasPassword = $('input[type="password"]').length > 0
+    if(hasPassword){
+      risk += 25
+      explanations.push("Login form detected")
+    }
+
+    // 🔎 page title phishing wording
+    const title = $("title").text().toLowerCase()
+    const words = ["login","verify","account","security"]
+    words.forEach(w=>{
+      if(title.includes(w)){
+        risk += 10
+        explanations.push(`Suspicious title keyword: ${w}`)
+      }
+    })
+
+    // 🔎 favicon brand mismatch
+    const favicon = $('link[rel*="icon"]').attr("href")
+    if(favicon && !favicon.includes(domain)){
+      risk += 10
+      explanations.push("Favicon domain mismatch")
+    }
+
+    // 🔎 suspicious scripts
+    const scripts = $("script").length
+    if(scripts > 20){
+      risk += 10
+      explanations.push("Many scripts detected")
+    }
+
+  }catch{
+    explanations.push("Could not analyze page content")
+  }
+
+  return risk
+}
+
+
 app.get("/scan", async (req, res) => {
   let targetUrl = req.query.url;
   if (!targetUrl) return res.status(400).json({ error: "no url" });
@@ -127,6 +173,11 @@ app.get("/scan", async (req, res) => {
       risk+=15;
       explanations.push("Multiple redirects detected");
     }
+
+   const pageRisk = await analyzePage(targetUrl, domain, explanations)
+   risk += pageRisk
+
+
 
     const status =
       risk<30?"Low risk":
